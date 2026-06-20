@@ -588,33 +588,130 @@ footer{background:var(--slate-dark);padding:2.5rem 4rem}
 </div>
 
 <script>
-// ── CLINIC KNOWLEDGE BASE (system prompt) ──────────────────────────────────
-const CLINIC_SYSTEM = `You are the friendly virtual receptionist for Affinity Premium Dental Clinic in Delhi. Your name is Affinity Assistant. You have a warm, conversational tone — like a knowledgeable receptionist who genuinely cares.
+// ── RULE-BASED CHAT ENGINE ───────────────────────────────────────────────────
+// No API needed — works entirely in the browser.
 
-CLINIC FACTS:
-- Name: Affinity Premium Dental Clinic
-- Doctors: Dr. Kuber Sood (Director, Endodontist & Implantologist, BDS MSc MDS, 23 years experience) and Dr. Gauri Sood (Co-Director, Orthodontist & Invisalign Specialist, 50+ aligner cases)
-- Address: E-166, Shri TN Kundra Marg, Near Mandelia Road, Kamla Nagar, Delhi – 110007
-- Phone: +91 11 4310 5328
-- Instagram: @affinitypremium
-- Hours: Monday to Saturday 10:00 AM – 2:00 PM and 4:00 PM – 8:00 PM. Sunday 10:00 AM – 2:00 PM.
-- Rating: 4.9 stars on Justdial with 423+ reviews
-- 3 Delhi locations
-- Equipment imported from USA, Germany and Belgium
+const RULES = [
+  {
+    match: ['timing','hour','open','close','time','when','schedule','sunday','saturday','weekday','weekend'],
+    reply: "We're open Monday to Saturday 10:00 AM – 2:00 PM and 4:00 PM – 8:00 PM, and Sundays 10:00 AM – 2:00 PM. 😊 Would you like to book an appointment?",
+    followUp: ["How do I book an appointment?", "Where is the clinic?"]
+  },
+  {
+    match: ['where','location','address','kamla','nagar','directions','find','map','reach','near'],
+    reply: "We're at E-166, Shri TN Kundra Marg, Near Mandelia Road, Kamla Nagar, Delhi – 110007. Easy to find — just off the main Kamla Nagar stretch! Shall I help you book a visit?",
+    followUp: ["What are the clinic timings?", "How do I book an appointment?"]
+  },
+  {
+    match: ['book','appointment','visit','schedule','slot','consult','consultation','reserve'],
+    reply: "Booking is easy! You can call us on +91 11 4310 5328, or scroll up to the Contact section on this page and fill in the appointment form — we'll confirm your slot shortly. 🗓️",
+    followUp: ["What services do you offer?", "Who are the doctors?"]
+  },
+  {
+    match: ['phone','call','number','contact','reach','whatsapp','telephone'],
+    reply: "You can reach us directly on +91 11 4310 5328. We're happy to answer any questions or help you book! 📞",
+    followUp: ["What are the clinic timings?", "How do I book an appointment?"]
+  },
+  {
+    match: ['invisalign','aligner','clear braces','clear aligner','transparent','braces','orthodontic','teeth straighten','crooked'],
+    reply: "Absolutely! Dr. Gauri Sood is our certified Invisalign and clear aligner specialist with 50+ successful cases. It's a discreet, comfortable way to straighten your teeth — no metal wires. Would you like to book a consultation with her?",
+    followUp: ["How do I book an appointment?", "Who is Dr. Gauri Sood?"]
+  },
+  {
+    match: ['root canal','endodontic','endosurgery','rct','pain','tooth pain','infected','pulp'],
+    reply: "Root canal treatments are Dr. Kuber Sood's core specialisation — 23 years of experience and completely painless with modern techniques. You're in very safe hands. Would you like to book an appointment?",
+    followUp: ["How do I book an appointment?", "Who is Dr. Kuber Sood?"]
+  },
+  {
+    match: ['implant','missing tooth','missing teeth','titanium','permanent tooth'],
+    reply: "We offer dental implants using equipment imported from the USA and Germany — the gold standard for replacing missing teeth. Dr. Kuber Sood is our implants specialist. Would you like to know more or book a consultation?",
+    followUp: ["How do I book an appointment?", "What other services do you offer?"]
+  },
+  {
+    match: ['whitening','whiten','bright','stain','yellow','bleach'],
+    reply: "We offer professional teeth whitening that gives you a noticeably brighter smile in just one visit! It's safe, effective, and done by our specialists. Would you like to book a session?",
+    followUp: ["How do I book an appointment?", "What other services do you offer?"]
+  },
+  {
+    match: ['veneer','crown','smile design','makeover','cosmetic','aesthetic','smile'],
+    reply: "We do full smile makeovers — zirconia crowns, porcelain veneers, and complete smile design. Dr. Kuber is a Fellow of the Royal College of Aesthetic Dentistry (UK), so you're in expert hands! Shall we book a consultation?",
+    followUp: ["How do I book an appointment?", "What other services do you offer?"]
+  },
+  {
+    match: ['laser','gum','gum disease','gum surgery','gingivitis','periodont','bleeding gum'],
+    reply: "We offer minimally invasive laser gum surgery — much less discomfort and faster healing than traditional methods. Great for treating gum disease at any stage. Would you like to book an assessment?",
+    followUp: ["How do I book an appointment?", "What other services do you offer?"]
+  },
+  {
+    match: ['child','kid','children','baby','paediatric','pediatric','junior','young'],
+    reply: "We have a very gentle, child-friendly approach at Affinity — making first visits comfortable and anxiety-free for little ones. 🦷 Would you like to book an appointment for your child?",
+    followUp: ["How do I book an appointment?", "What are the clinic timings?"]
+  },
+  {
+    match: ['denture','prosthetic','full teeth','removable','partial denture'],
+    reply: "We offer flexible partial and complete dentures, as well as maxillofacial prosthetics — crafted for comfort and a natural look. Would you like to come in for a consultation?",
+    followUp: ["How do I book an appointment?", "What other services do you offer?"]
+  },
+  {
+    match: ['service','offer','treat','treatment','do you','what can','procedure','facilities'],
+    reply: "We offer a full range of dental services: general checkups & cleaning, teeth whitening, Invisalign & clear aligners, root canal & endosurgery, dental implants, laser gum surgery, veneers & smile design, paediatric dentistry, and dentures. Which one would you like to know more about?",
+    followUp: ["Do you offer Invisalign?", "How do I book an appointment?"]
+  },
+  {
+    match: ['kuber','dr kuber','endodontist','implantologist','director','speaking','lecturer','dentsply','osstem'],
+    reply: "Dr. Kuber Sood is our Director — an endodontist and implantologist with 23 years of experience. He holds an MSc from the University of Nottingham, is a Diplomate of the American Board of Implantology, and a Fellow of the Royal College of Aesthetic Dentistry (UK). A nationally recognised speaker too! 🌟",
+    followUp: ["Who is Dr. Gauri Sood?", "How do I book an appointment?"]
+  },
+  {
+    match: ['gauri','dr gauri','orthodontist','aligner specialist','co-director'],
+    reply: "Dr. Gauri Sood is our Co-Director and orthodontics specialist. She's a certified Invisalign expert with 50+ clear aligner cases, a Nobel Fellow in implants, and has a background in hospital management from Apollo Delhi. Wonderful with patients! 😊",
+    followUp: ["Do you offer Invisalign?", "How do I book an appointment?"]
+  },
+  {
+    match: ['doctor','dentist','who','specialist','team','staff','expertise','experience','qualified'],
+    reply: "Our clinic is led by two specialists — Dr. Kuber Sood (Director, Endodontist & Implantologist, 23 years experience) and Dr. Gauri Sood (Co-Director, Orthodontist & Invisalign Specialist). Together they bring 43+ years of expertise. Would you like to know more about either of them?",
+    followUp: ["Who is Dr. Kuber Sood?", "Who is Dr. Gauri Sood?"]
+  },
+  {
+    match: ['rating','review','feedback','stars','justdial','practo','reputation','trusted'],
+    reply: "We're proud to have a 4.9★ rating on Justdial with 423+ verified reviews! Patients often travel from other cities — and even abroad — to see our doctors. 🌟",
+    followUp: ["How do I book an appointment?", "Who are the doctors?"]
+  },
+  {
+    match: ['price','cost','fee','charge','expensive','affordable','how much','rate'],
+    reply: "Pricing depends on the treatment and your specific needs. We believe in transparent, fair pricing — please call us on +91 11 4310 5328 or book a consultation and we'll give you a full picture after a brief assessment. 😊",
+    followUp: ["How do I book an appointment?", "What are the clinic timings?"]
+  },
+  {
+    match: ['equipment','technology','machine','imported','usa','germany','belgium','modern'],
+    reply: "We use equipment imported from the USA, Germany, and Belgium — among the best available globally. Your treatment is performed with the same tools used in top international clinics. 🌍",
+    followUp: ["What services do you offer?", "How do I book an appointment?"]
+  },
+  {
+    match: ['instagram','social','follow','online','website'],
+    reply: "You can follow us on Instagram at @affinitypremium for updates, patient stories, and dental tips! 📸 Is there anything else I can help you with?",
+    followUp: ["How do I book an appointment?", "What are the clinic timings?"]
+  },
+  {
+    match: ['pain','scared','nervous','anxious','fear','phobia','hurt','safe'],
+    reply: "We completely understand — dental anxiety is very common! Our team is trained to make every visit as calm and comfortable as possible. Many of our patients who were initially nervous become regulars. You're in caring hands here. 💙 Would you like to book a gentle first consultation?",
+    followUp: ["How do I book an appointment?", "Who are the doctors?"]
+  },
+  {
+    match: ['hi','hello','hey','good morning','good afternoon','good evening','namaste','hii','helo'],
+    reply: "Hi there! 😊 Welcome to Affinity Premium Dental Clinic. I'm here to help with any questions about our services, doctors, timings, or bookings. What can I help you with today?",
+    followUp: ["What are the clinic timings?", "What services do you offer?", "How do I book an appointment?"]
+  },
+  {
+    match: ['thank','thanks','great','awesome','perfect','wonderful','helpful','appreciate'],
+    reply: "You're very welcome! 😊 We look forward to welcoming you at the clinic. Don't hesitate to reach out anytime — we're always happy to help!",
+    followUp: ["How do I book an appointment?", "What are the clinic timings?"]
+  }
+];
 
-SERVICES:
-General checkups & cleaning, Teeth whitening, Invisalign & clear aligners (Dr. Gauri's speciality), Root canal & endosurgery (Dr. Kuber's speciality), Dental implants, Laser gum surgery, Veneers/crowns/smile design, Paediatric dentistry, Dentures & prosthetics
+const FALLBACK = "That's a great question! For the most accurate answer, please call us on +91 11 4310 5328 or visit us at Kamla Nagar, Delhi. Our team is always happy to help. 😊";
+const FALLBACK_FOLLOWUP = ["What are the clinic timings?", "How do I book an appointment?", "What services do you offer?"];
 
-BOOKING: Patients can call +91 11 4310 5328, visit the clinic directly, or fill the appointment form on the Contact section of this website.
-
-RULES:
-- Keep answers concise and warm — 1-3 sentences for simple queries
-- For medical advice (diagnosis, treatment decisions) politely say you can help answer general questions but recommend speaking with the doctors directly
-- If unsure about something specific, say so honestly and offer to connect them with the clinic
-- Always end with a helpful nudge if relevant (e.g. "Would you like to book an appointment?")
-- Do not make up information not listed above`;
-
-// ── SUGGESTED QUESTIONS ─────────────────────────────────────────────────────
 const SUGGESTIONS = [
   "What are the clinic timings?",
   "Where is the clinic located?",
@@ -624,8 +721,17 @@ const SUGGESTIONS = [
   "What services do you offer?"
 ];
 
+function getBotReply(text) {
+  const lower = text.toLowerCase();
+  for (const rule of RULES) {
+    if (rule.match.some(kw => lower.includes(kw))) {
+      return { reply: rule.reply, followUp: rule.followUp };
+    }
+  }
+  return { reply: FALLBACK, followUp: FALLBACK_FOLLOWUP };
+}
+
 // ── CHAT STATE ───────────────────────────────────────────────────────────────
-const chatHistory = { float: [], contact: [] };
 let chatInitialised = { float: false, contact: false };
 let chatOpen = false;
 
@@ -650,10 +756,6 @@ function navTo(page, anchor, e) {
 }
 
 // ── CHAT CORE ────────────────────────────────────────────────────────────────
-function getMsgEl(id) { return document.getElementById(id + '-chat-messages') || document.getElementById(id.replace('float','float') + '-chat-messages'); }
-function getSugEl(id) { return document.getElementById(id + '-chat-suggestions'); }
-function getInput(id) { return document.getElementById(id + '-chat-input'); }
-
 function appendMsg(ctx, role, text) {
   const container = ctx === 'float' ? document.getElementById('float-chat-messages') : document.getElementById('contact-chat-messages');
   const div = document.createElement('div');
@@ -661,7 +763,6 @@ function appendMsg(ctx, role, text) {
   div.textContent = text;
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
-  return div;
 }
 
 function showTyping(ctx) {
@@ -691,53 +792,25 @@ function renderSuggestions(ctx, suggestions) {
   });
 }
 
-async function handleUserMessage(ctx, text) {
+function getInput(ctx) { return document.getElementById(ctx + '-chat-input'); }
+
+function handleUserMessage(ctx, text) {
   if (!text.trim()) return;
   const input = getInput(ctx);
   if (input) input.value = '';
   renderSuggestions(ctx, []);
   appendMsg(ctx, 'user', text);
-  chatHistory[ctx].push({ role: 'user', content: text });
   showTyping(ctx);
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 300,
-        system: CLINIC_SYSTEM,
-        messages: chatHistory[ctx]
-      })
-    });
-    const data = await resp.json();
-    const reply = data.content?.[0]?.text || "I'm sorry, I couldn't connect right now. Please call us on +91 11 4310 5328.";
+  // Simulate a brief typing delay for natural feel
+  setTimeout(() => {
     removeTyping(ctx);
+    const { reply, followUp } = getBotReply(text);
     appendMsg(ctx, 'bot', reply);
-    chatHistory[ctx].push({ role: 'assistant', content: reply });
-    // show follow-up suggestions contextually
-    const lower = text.toLowerCase();
-    let followUp = [];
-    if (lower.includes('timing') || lower.includes('hour') || lower.includes('open')) {
-      followUp = ["How do I book an appointment?", "Where is the clinic?"];
-    } else if (lower.includes('location') || lower.includes('address') || lower.includes('where')) {
-      followUp = ["What are the timings?", "How do I book?"];
-    } else if (lower.includes('book') || lower.includes('appointment')) {
-      followUp = ["What services do you offer?", "Who are the doctors?"];
-    } else if (lower.includes('doctor') || lower.includes('who')) {
-      followUp = ["Do you offer Invisalign?", "How do I book an appointment?"];
-    } else {
-      followUp = ["What are the clinic timings?", "How do I book an appointment?"];
-    }
     renderSuggestions(ctx, followUp);
-  } catch(err) {
-    removeTyping(ctx);
-    appendMsg(ctx, 'bot', "I'm having trouble connecting. Please call us directly on +91 11 4310 5328 and we'll be happy to help!");
-    renderSuggestions(ctx, ["What are the timings?", "Where are you located?"]);
-  }
+  }, 600 + Math.random() * 400);
 }
 
-async function sendChat(ctx) {
+function sendChat(ctx) {
   const input = getInput(ctx);
   if (!input) return;
   const text = input.value.trim();
@@ -747,13 +820,12 @@ async function sendChat(ctx) {
 function initChat(ctx) {
   if (chatInitialised[ctx]) return;
   chatInitialised[ctx] = true;
-  const greeting = "Hi there! 😊 Welcome to Affinity Premium Dental Clinic. I'm here to answer any questions you might have — about our services, doctors, location, or bookings. How can I help?";
+  const greeting = "Hi there! 😊 Welcome to Affinity Premium Dental Clinic. I'm here to answer any questions you might have — about our services, doctors, timings, or bookings. How can I help?";
   appendMsg(ctx, 'bot', greeting);
-  chatHistory[ctx].push({ role: 'assistant', content: greeting });
   renderSuggestions(ctx, SUGGESTIONS.slice(0, 4));
 }
 
-// enter key support
+// Enter key support
 document.getElementById('float-chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat('float'); });
 document.getElementById('contact-chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat('contact'); });
 
@@ -769,7 +841,7 @@ function toggleChat() {
   if (chatOpen) initChat('float');
 }
 
-// init contact chat when contact section scrolled into view
+// Init contact chat when contact section scrolls into view
 const contactChatObs = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) initChat('contact'); });
 }, { threshold: 0.3 });
